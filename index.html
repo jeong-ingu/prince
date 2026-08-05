@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>왕십리자이 매물 추적</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --card:#fff; --line:#e6e8ec; --text:#1a1d23; --muted:#6b7280;
+    --add:#0a7d34; --add-bg:#e6f6ec; --rem:#c0392b; --rem-bg:#fdeceb;
+    --price:#a86400; --price-bg:#fdf3e0; --accent:#1f6feb; --reap:#7c3aed;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#0f1115; --card:#171a21; --line:#272b34; --text:#e6e8ec; --muted:#9aa1ac;
+      --add:#5bd98a; --add-bg:#12351f; --rem:#ff8079; --rem-bg:#3a1614;
+      --price:#f0c469; --price-bg:#3a2e12; --accent:#5b9dff; --reap:#b98bff; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Malgun Gothic",sans-serif;background:var(--bg);color:var(--text);line-height:1.5}
+  .wrap{max-width:1080px;margin:0 auto;padding:24px 16px 64px}
+  h1{font-size:20px;margin:0 0 4px}
+  .sub{color:var(--muted);font-size:13px;margin-bottom:20px}
+  .stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 16px;flex:1;min-width:120px}
+  .stat .n{font-size:24px;font-weight:700}
+  .stat .l{font-size:12px;color:var(--muted)}
+  h2{font-size:15px;margin:28px 0 12px;display:flex;align-items:center;gap:8px}
+  .pill{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:1px 8px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .log{max-height:340px;overflow:auto}
+  .ev{display:flex;gap:10px;align-items:baseline;padding:9px 14px;border-bottom:1px solid var(--line);font-size:13px}
+  .ev:last-child{border-bottom:none}
+  .ev-removed{background:var(--rem-bg)}
+  .evicon{font-size:14px;line-height:1}
+  .ev .t{color:var(--muted);font-size:11px;white-space:nowrap;min-width:96px}
+  .badge{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;white-space:nowrap}
+  .b-ADDED,.b-READDED{color:var(--add);background:var(--add-bg)}
+  .b-REAPPEARED{color:var(--reap);background:rgba(124,58,237,.12)}
+  .b-REMOVED{color:var(--rem);background:var(--rem-bg)}
+  .b-UP{color:var(--rem);background:var(--rem-bg)}
+  .b-DOWN{color:var(--accent);background:rgba(31,111,235,.12)}
+  .ev a{color:inherit;text-decoration:none}
+  .ev a:hover{text-decoration:underline}
+  .filters{display:flex;gap:8px;margin:0 0 12px;flex-wrap:wrap}
+  .fbtn{font:inherit;font-size:13px;cursor:pointer;padding:6px 16px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--text)}
+  .fbtn:hover{border-color:var(--accent)}
+  .fbtn.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:11px;color:var(--muted);font-weight:600;position:sticky;top:0;background:var(--card)}
+  tr.stale td{background:rgba(0,0,0,.045)}
+  @media (prefers-color-scheme: dark){ tr.stale td{background:rgba(255,255,255,.05)} }
+  .price{font-weight:700;white-space:nowrap}
+  .pricelink{cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px}
+  .pricelink:hover{color:var(--accent)}
+  .feat{color:var(--muted);max-width:280px}
+  .hl{color:#1552d6;font-weight:800}
+  @media (prefers-color-scheme: dark){ .hl{color:#7aa8ff} }
+  .rbadge{font-size:11px;font-weight:700;padding:1px 7px;border-radius:999px;margin-left:4px}
+  .r-new{color:var(--add);background:var(--add-bg)}
+  .r-reap{color:var(--reap);background:rgba(124,58,237,.12)}
+  td a{color:var(--accent);text-decoration:none;white-space:nowrap}
+  td a:hover{text-decoration:underline}
+  .tablewrap{overflow-x:auto}
+  .removed td{opacity:.6;text-decoration:line-through}
+  .empty{padding:16px;color:var(--muted);font-size:13px}
+  details summary{cursor:pointer;font-size:15px;font-weight:600;margin:28px 0 12px}
+  .backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:16px;z-index:50}
+  .backdrop.show{display:flex}
+  .modal{background:var(--card);border:1px solid var(--line);border-radius:14px;max-width:440px;width:100%;max-height:80vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+  .modal .mhead{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;align-items:flex-start;gap:8px}
+  .modal .mtitle{font-weight:700;font-size:15px}
+  .modal .msub{font-size:12px;color:var(--muted);margin-top:2px}
+  .modal .mclose{margin-left:auto;cursor:pointer;border:none;background:none;font-size:20px;color:var(--muted);line-height:1}
+  .modal .mbody{padding:6px 0}
+  .hist{display:flex;align-items:center;gap:12px;padding:10px 18px;border-bottom:1px solid var(--line)}
+  .hist:last-child{border-bottom:none}
+  .hist .hdate{font-size:12px;color:var(--muted);min-width:96px}
+  .hist .hprice{font-weight:700;font-size:14px}
+  .hist .hdelta{font-size:12px;font-weight:700;margin-left:auto;padding:2px 8px;border-radius:999px}
+  .hdelta.up{color:var(--rem);background:var(--rem-bg)}
+  .hdelta.down{color:var(--accent);background:rgba(31,111,235,.12)}
+  .hdelta.flat{color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1 id="title">매물 추적</h1>
+  <div class="sub" id="updated"></div>
+
+  <div class="stats" id="stats"></div>
+
+  <h2>🔔 변동 로그 <span class="pill" id="logcount"></span></h2>
+  <div class="card log" id="log"></div>
+
+  <h2>🏠 현재 매물 <span class="pill" id="groupcount"></span></h2>
+  <div class="sub" style="margin-top:-4px">동일매물(중개사만 다른 같은 집)은 한 줄로 묶고, 가격 오름차순으로 정렬했습니다.</div>
+  <div class="filters" id="filters">
+    <button class="fbtn active" data-area="all">전체</button>
+    <button class="fbtn" data-area="51">51㎡</button>
+    <button class="fbtn" data-area="59">59㎡</button>
+    <button class="fbtn" data-area="84">84㎡</button>
+  </div>
+  <div class="card tablewrap"><table id="active"><thead><tr>
+    <th>#</th><th>거래</th><th>면적(공급/전용)</th><th>동</th><th>층</th><th>가격</th>
+    <th>확인일</th><th>등록</th><th>메모</th><th></th>
+  </tr></thead><tbody></tbody></table></div>
+
+  <details>
+    <summary>🗑️ 사라진 매물 <span class="pill" id="removedcount"></span></summary>
+    <div class="card tablewrap"><table id="removed"><thead><tr>
+      <th>거래</th><th>면적</th><th>동</th><th>층</th><th>가격</th><th>대표매물번호</th><th>사라진 시각</th><th></th>
+    </tr></thead><tbody></tbody></table></div>
+  </details>
+</div>
+
+<div class="backdrop" id="backdrop">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="mhead"><div><div class="mtitle" id="mtitle"></div><div class="msub" id="msub"></div></div>
+      <button class="mclose" id="mclose" aria-label="닫기">×</button></div>
+    <div class="mbody" id="mbody"></div>
+  </div>
+</div>
+
+<script src="tracker-data.js"></script>
+<script>
+  const T = window.TRACKER;
+  const $ = (s)=>document.querySelector(s);
+  const fmtDT = (iso)=>{ const d=new Date(iso); return isNaN(d)?'-':d.toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}); };
+  const esc = (s)=>(s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  const won = (n)=>{ if(!n) return '-'; const e=Math.floor(n/1e8), m=Math.round((n%1e8)/1e4);
+    return e>0 ? (m>0?`${e}억 ${m.toLocaleString()}`:`${e}억`) : `${m.toLocaleString()}만`; };
+  const priceOf = (a)=> a.dealPrice || a.warrantyPrice || 0;
+  const daysAgo = (d)=>{ if(!d) return 0; const t=new Date(d+'T00:00:00'); const n=new Date(); n.setHours(0,0,0,0); return Math.floor((n-t)/86400000); };
+  const hlMemo = (s)=> esc(s||'').replace(/(RR|R|로얄)/g,'<span class="hl">$1</span>');
+
+  if(!T || !T.groups){ document.body.innerHTML='<div class="wrap"><h1>데이터가 없습니다</h1><p class="sub"><code>node scrape.mjs</code> 를 실행하세요.</p></div>'; }
+  else {
+    const all = Object.values(T.groups);
+    const active = all.filter(g=>g.active);
+    const removed = all.filter(g=>!g.active);
+
+    $('#title').textContent = `${T.complexName} 매물 추적`;
+    $('#updated').textContent = `최종 업데이트: ${fmtDT(T.updatedAt)}  ·  집(동·면적·층·방향) 단위 추적`;
+
+    const regCount = active.reduce((s,g)=>s+(g.memberCount||0),0);
+    // 신규/재등록 배지: 최근 20시간 이내(수집이 두 번 돌아도 유지)
+    const RECENT_MS = 20*60*60*1000;
+    const isRecent = (ts)=> ts && !String(ts).startsWith('2000') && (new Date(T.updatedAt)-new Date(ts))>=0 && (new Date(T.updatedAt)-new Date(ts))<RECENT_MS;
+    const newCount = active.filter(g=>isRecent(g.firstSeen)).length;
+    $('#stats').innerHTML = [
+      ['매물 (집)', active.length],
+      ['등록글 수', regCount],
+      ['신규 매물', newCount],
+      ['사라진 매물', removed.length],
+    ].map(([l,n])=>`<div class="stat"><div class="n">${n}</div><div class="l">${l}</div></div>`).join('');
+
+    // 변동 로그
+    const KOR={ADDED:'신규',REAPPEARED:'재등록',REMOVED:'삭제',PRICE:'가격변경'};
+    $('#logcount').textContent = `${T.events.length}건`;
+    $('#log').innerHTML = T.events.length ? T.events.map(e=>{
+      let cls='b-'+e.type, text=KOR[e.type]||e.type;
+      if(e.type==='PRICE' && e.from!=null && e.to!=null){ const up=e.to>e.from; cls=up?'b-UP':'b-DOWN'; text=up?'가격 ▲':'가격 ▼'; }
+      const rm = e.type==='REMOVED';
+      const g = T.groups[e.gid];
+      const inner = g&&g.url ? `<a href="${g.url}" target="_blank">${esc(e.label)}</a>` : esc(e.label);
+      return `<div class="ev${rm?' ev-removed':''}">
+        <span class="t">${fmtDT(e.time)}</span>
+        ${rm?'<span class="evicon">❗</span>':''}
+        <span class="badge ${cls}">${text}</span>${inner}
+      </div>`;
+    }).join('') : '<div class="empty">아직 변동 내역이 없습니다. 다음 실행부터 집 단위 신규/삭제·가격변경이 쌓입니다.</div>';
+
+    // 현재 매물 — 집 단위, 가격 오름차순
+    const groups = active.slice().sort((a,b)=> (a.minPrice||0)-(b.minPrice||0) || (a.exclusive??0)-(b.exclusive??0));
+    const GH = {};
+    for(const g of groups){
+      GH[g.groupId] = { title:`${g.areaName} / ${g.exclusive??'-'}㎡ · ${g.floor} · ${g.dong}동`,
+        sub:`등록 ${g.memberCount}곳`, points:(g.priceHistory&&g.priceHistory.length)?g.priceHistory:[{t:g.firstSeen,price:g.minPrice}] };
+    }
+
+    $('#groupcount').textContent = `${groups.length}건 (등록글 ${regCount})`;
+    $('#active tbody').innerHTML = groups.map((g,i)=>{
+      const priceLabel = g.minPrice===g.maxPrice ? won(g.minPrice) : `${won(g.minPrice)}~${won(g.maxPrice)}`;
+      const areaBucket = g.exclusive ? Math.floor(g.exclusive) : '';
+      const isStale = daysAgo(g.confirmDate) >= 21;
+      const badge = isRecent(g.reappearedAt) ? '<span class="rbadge r-reap">재등록</span>'
+        : (isRecent(g.firstSeen) ? '<span class="rbadge r-new">신규</span>' : '');
+      return `<tr class="${isStale?'stale':''}" data-area="${areaBucket}">
+        <td>${i+1}</td>
+        <td>${esc(g.tradeType)}${badge}</td>
+        <td>${esc(g.areaName)} / ${g.exclusive??'-'}㎡</td>
+        <td>${g.dong?esc(g.dong)+'동':'-'}</td>
+        <td>${esc(g.floor)}</td>
+        <td class="price"><span class="pricelink" data-key="${esc(g.groupId)}">${priceLabel}</span></td>
+        <td>${esc(g.confirmDate)}</td>
+        <td>${g.memberCount}곳</td>
+        <td class="feat">${hlMemo(g.memo)}</td>
+        <td><a href="${g.url}" target="_blank">보기 ↗</a></td>
+      </tr>`;
+    }).join('');
+
+    removed.sort((a,b)=> (b.removedAt||'').localeCompare(a.removedAt||''));
+    $('#removedcount').textContent = `${removed.length}건`;
+    $('#removed tbody').innerHTML = removed.length ? removed.map(g=>`
+      <tr class="removed">
+        <td>${esc(g.tradeType)}</td>
+        <td>${esc(g.areaName)} / ${g.exclusive??'-'}㎡</td>
+        <td>${g.dong?esc(g.dong)+'동':'-'}</td>
+        <td>${esc(g.floor)}</td>
+        <td class="price">${won(g.minPrice)}</td>
+        <td style="font-variant-numeric:tabular-nums">${esc(g.repArticleNumber)}</td>
+        <td>${fmtDT(g.removedAt)}</td>
+        <td><a href="${g.url}" target="_blank">보기 ↗</a></td>
+      </tr>`).join('') : '<tr><td colspan="8" class="empty">사라진 매물이 아직 없습니다.</td></tr>';
+
+    function applyFilter(area){
+      document.querySelectorAll('#active tbody tr').forEach(t=>{
+        t.style.display = (area==='all' || t.dataset.area===area) ? '' : 'none';
+      });
+    }
+    document.querySelectorAll('#filters .fbtn').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        document.querySelectorAll('#filters .fbtn').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        applyFilter(btn.dataset.area);
+      });
+    });
+
+    const backdrop = $('#backdrop');
+    const closeModal = ()=> backdrop.classList.remove('show');
+    $('#mclose').addEventListener('click', closeModal);
+    backdrop.addEventListener('click', e=>{ if(e.target===backdrop) closeModal(); });
+    document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
+    function openHistory(key){
+      const h = GH[key]; if(!h) return;
+      $('#mtitle').textContent = h.title; $('#msub').textContent = h.sub;
+      const pts = [...h.points].sort((a,b)=>(a.t||'').localeCompare(b.t||''));
+      $('#mbody').innerHTML = pts.map((p,idx)=>{
+        const prev = idx>0?pts[idx-1].price:null;
+        let delta='<span class="hdelta flat">시작</span>';
+        if(prev!=null){ const d=p.price-prev; if(d>0) delta=`<span class="hdelta up">▲ ${won(d)}</span>`; else if(d<0) delta=`<span class="hdelta down">▼ ${won(-d)}</span>`; else delta='<span class="hdelta flat">변동 없음</span>'; }
+        return `<div class="hist"><span class="hdate">${fmtDT(p.t)}</span><span class="hprice">${won(p.price)}</span>${delta}</div>`;
+      }).join('') + (pts.length<2 ? '<div class="empty">가격 변동 기록이 없습니다.</div>' : '');
+      backdrop.classList.add('show');
+    }
+    document.querySelectorAll('.pricelink').forEach(el=> el.addEventListener('click', ()=> openHistory(el.dataset.key)));
+  }
+</script>
+</body>
+</html>

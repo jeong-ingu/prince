@@ -1,0 +1,10 @@
+node_modules/
+*.log
+*.png
+tracker.real.bak.json
+gap.html
+gap-data.js
+gap-data.json
+gap-scrape.mjs
+gap-complexes.json
+.DS_Store
