@@ -219,7 +219,15 @@
         t.style.display = (area==='all' || t.dataset.area===area) ? '' : 'none';
       });
     }
+    // 버튼에 건수 표시
+    const areaCount = {};
+    document.querySelectorAll('#active tbody tr').forEach(t=>{ const a=t.dataset.area; areaCount[a]=(areaCount[a]||0)+1; });
+    const totalCnt = document.querySelectorAll('#active tbody tr').length;
     document.querySelectorAll('#filters .fbtn').forEach(btn=>{
+      const a = btn.dataset.area;
+      const cnt = a==='all' ? totalCnt : (areaCount[a]||0);
+      const base = a==='all' ? '전체' : `${a}㎡`;
+      btn.textContent = `${base} (${cnt})`;
       btn.addEventListener('click', ()=>{
         document.querySelectorAll('#filters .fbtn').forEach(b=>b.classList.remove('active'));
         btn.classList.add('active');
